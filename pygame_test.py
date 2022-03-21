@@ -73,10 +73,10 @@ def main(val):
     # print(grid)
 
     processed_grid = preprocess_grid(grid, size)
-    print(processed_grid)
+    # print(processed_grid)
 
     output = carve_maze(processed_grid, size)
-    print(output)
+    # print(output)
 
     return output
 
@@ -95,6 +95,15 @@ class Grid:
     
     def getColLen(self):
         return self.matrix.shape[1]-1
+
+    def setBound(self, val):
+        for i in range(self.matrix.shape[1]):
+            self.setIndex(0, i, -2);
+            self.setIndex(self.getRowLen(), i, val)
+    
+        for i in range(self.matrix.shape[0]):
+            self.setIndex(i, 0, -2);
+            self.setIndex(i, self.getColLen(), val)
 
 class Maze:
    def __init__(self, screen_w, screen_h):
@@ -116,6 +125,8 @@ class Maze:
         self.screen_w // (self.cell_width+self.cell_margin), 
         self.screen_w // (self.cell_height+self.cell_margin) 
         )
+    self.grid.setBound(-2)
+
 
     self.screen_w = screen_w * 3 - 10
     self.screen_h = screen_h * 3 - 10
@@ -207,11 +218,11 @@ class Maze:
                         pygame.draw.rect(self.screen, BLACK, (x_pos,y_pos, self.cell_width, self.cell_height))
                     elif self.grid.getIndex(i, j) == 0:
                         pygame.draw.rect(self.screen, WHITE, (x_pos,y_pos, self.cell_width, self.cell_height))
-                    else:
-                        pygame.draw.rect(self.screen, GREEN, (x_pos,y_pos, self.cell_width, self.cell_height))
-
-                    if (i == 0 or j == 0) or (i == self.grid.getColLen() or j == self.grid.getRowLen()):
+                    elif self.grid.getIndex(i, j) == -2:
                         pygame.draw.rect(self.screen, GRAY, (x_pos,y_pos, self.cell_width, self.cell_height))
+                    else:
+                        pygame.draw.rect(self.screen, GREEN, (x_pos,y_pos, self.cell_width, self.cell_height))                    
+                        
             # set fps
             self.clock.tick(20)
 
@@ -220,7 +231,14 @@ class Maze:
 
         #quit game
         pygame.quit()
+        return self.grid.matrix
 
 if __name__ == "__main__":
-    maze = Maze(255, 255)
-    maze.run()
+    maze = Maze(255,255)
+    matrix = maze.run()
+
+    # print matrix
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            print(matrix[i][j], end=" ")
+        print()
