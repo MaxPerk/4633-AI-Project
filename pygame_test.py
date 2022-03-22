@@ -233,12 +233,81 @@ class Maze:
         pygame.quit()
         return self.grid.matrix
 
+def inList(value, list):
+    for item in list:
+        if value == item:
+            return True
+    return False
+
+def h(cell1,cell2):
+    x1,y1=cell1
+    x2,y2=cell2
+
+    # distance = x1-y1 if x1 - y1 > y1-x1 else y1-x1
+
+    return abs(x1-x2) + abs(y1-y2) 
+
+class Solve:
+    def __init__(self, grid, rows, cols, start, end):
+        self.grid = grid
+        self.rows = rows
+        self.cols = cols
+        self.start = start
+        self.end = end
+        self.frontier = []
+        self.path = [start]
+   
+    def adjacent_list(self):
+        curr = self.path[-1]
+        left = (curr[0]-1, curr[1])
+        right = (curr[0]+1, curr[1])
+        below = (curr[0], curr[1]+1)
+        above = (curr[0], curr[1]-1)
+        self.adjacent = [left, right, below, above]
+
+        for i in range(len(self.adjacent)):
+            try:
+                if self.adjacent[i][0] < 0 or self.adjacent[i][1] < 0:
+                    self.adjacent[i] = None
+                elif self.adjacent[i][0] > self.rows or self.adjacent[i][1] > self.cols:
+                    self.adjacent[i] = None
+                elif self.grid[self.adjacent[i][0]][self.adjacent[i][1]] < 0:
+                    self.adjacent[i] = None
+                elif inList(self.adjacent[i], self.path):
+                    self.adjacent[i] = None
+            except:
+                self.adjacent[i] = None
+        self.adjacent = list(filter(None, self.adjacent))
+
+    def select_from_frontier(self):
+        self.frontier = self.frontier + self.adjacent
+        next = self.frontier[0]
+        idx = 0
+
+        for i in range(len(self.frontier)):
+            if h(self.frontier[i], self.end)<=h(next, self.end):
+                next = self.frontier[i]
+                idx = i 
+
+        self.frontier.pop(idx)
+        self.path.append(next)
+        self.grid[next[0]][next[1]] = 1
+
+
 if __name__ == "__main__":
     maze = Maze(255,255)
+    
     matrix = maze.run()
 
-    # print matrix
-    for i in range(matrix.shape[0]):
-        for j in range(matrix.shape[1]):
-            print(matrix[i][j], end=" ")
-        print()
+    solve = Solve(matrix, matrix.shape[0],matrix.shape[1], (0, 0), (matrix.shape[0]-1,matrix.shape[1]-1))
+
+    while solve.path[-1] != solve.end:
+        solve.adjacent_list()
+        solve.select_from_frontier()
+        
+        if len(solve.path) > 100:
+            break
+
+    maze2 = Maze(255, 255)
+    maze2.grid.matrix = solve.grid
+    maze2.run()
