@@ -243,9 +243,14 @@ def h(cell1,cell2):
     x1,y1=cell1
     x2,y2=cell2
 
+
     # distance = x1-y1 if x1 - y1 > y1-x1 else y1-x1
 
     return abs(x1-x2) + abs(y1-y2) 
+
+def f(cell1, cell2):
+    
+    return cell1[2] + h((cell1[0], cell1[1]), (cell2[0], cell2[1]))
 
 class Solve:
     def __init__(self, grid, rows, cols, start, end):
@@ -255,14 +260,15 @@ class Solve:
         self.start = start
         self.end = end
         self.frontier = []
-        self.path = [start]
+        self.path = [(start[0], start[1], 0)]
+        self.stop = False
    
     def adjacent_list(self):
         curr = self.path[-1]
-        left = (curr[0]-1, curr[1])
-        right = (curr[0]+1, curr[1])
-        below = (curr[0], curr[1]+1)
-        above = (curr[0], curr[1]-1)
+        left = (curr[0]-1, curr[1], curr[2]+1)
+        right = (curr[0]+1, curr[1], curr[2]+1)
+        below = (curr[0], curr[1]+1, curr[2]+1)
+        above = (curr[0], curr[1]-1, curr[2]+1)
         self.adjacent = [left, right, below, above]
 
         for i in range(len(self.adjacent)):
@@ -275,6 +281,8 @@ class Solve:
                     self.adjacent[i] = None
                 elif inList(self.adjacent[i], self.path):
                     self.adjacent[i] = None
+                elif self.grid[self.adjacent[i][0]][self.adjacent[i][1]] != 0:
+                    self.adjacent[i] = None
             except:
                 self.adjacent[i] = None
         self.adjacent = list(filter(None, self.adjacent))
@@ -284,13 +292,20 @@ class Solve:
         next = self.frontier[0]
         idx = 0
 
+        if len(self.frontier) == 0:
+            self.stop == True
         for i in range(len(self.frontier)):
-            if h(self.frontier[i], self.end)<=h(next, self.end):
+            if inList(self.frontier[i], self.path):
+                self.frontier[i] = None
+                continue
+            if f(self.frontier[i], self.end) < f(next, self.end):
                 next = self.frontier[i]
                 idx = i 
 
         self.frontier.pop(idx)
+        self.frontier = list(filter(None, self.frontier))
         self.path.append(next)
+        print(next)
         self.grid[next[0]][next[1]] = 1
 
 
@@ -301,12 +316,14 @@ if __name__ == "__main__":
 
     solve = Solve(matrix, matrix.shape[0],matrix.shape[1], (0, 0), (matrix.shape[0]-1,matrix.shape[1]-1))
 
-    while solve.path[-1] != solve.end:
+    while (solve.path[-1][0],solve.path[-1][1]) != solve.end and not solve.stop:
         solve.adjacent_list()
         solve.select_from_frontier()
         
-        if len(solve.path) > 100:
+        if len(solve.path) > 1000:
             break
+
+    print(len(solve.path))
 
     maze2 = Maze(255, 255)
     maze2.grid.matrix = solve.grid
