@@ -140,6 +140,111 @@ class Maze:
     self.drag=False
     self.clear = False
 
+    self.solve = Solve(self.grid.matrix, self.grid.matrix.shape[0],self.grid.matrix.shape[1], (0, 0), (self.grid.matrix.shape[0]-1,self.grid.matrix.shape[1]-1))
+   
+   def iterative_run(self, grid):
+        self.solve.grid = grid
+        while self.running:
+            for event in pygame.event.get():
+
+                # Exit window
+                if event.type == pygame.QUIT:
+                    self.running = False
+                
+                # Background color keys
+                elif event.type == KEYDOWN:
+                    if event.key == K_g:
+                        self.background = GREEN
+                    elif event.key == K_b:
+                        self.background = BLUE
+                    elif event.key == K_r:
+                        self.background = RED
+                    elif event.key == K_w:
+                        self.background = WHITE
+                    elif event.key == K_k:
+                        self.background = BLACK
+
+                # Unclick stops events
+                elif event.type == MOUSEBUTTONUP:
+                    self.drag=False
+                    self.clear=False
+                
+                # Erase grid colors
+                elif self.drag and self.clear:
+                    x_pos, y_pos = pygame.mouse.get_pos()
+
+                    x_pos = x_pos // (self.cell_width+self.cell_margin)
+                    y_pos = y_pos // (self.cell_height+self.cell_margin)
+
+                    # if self.grid.getIndex(y_pos, x_pos) == 1:
+                    self.grid.setIndex(y_pos, x_pos, 0)
+                
+                # Color grid cells
+                elif self.drag:
+                    x_pos, y_pos = pygame.mouse.get_pos()
+
+                    x_pos = x_pos // (self.cell_width+self.cell_margin)
+                    y_pos = y_pos // (self.cell_height+self.cell_margin)
+
+                    if self.grid.getIndex(y_pos, x_pos) == 0:
+                        self.grid.setIndex(y_pos, x_pos, 1)
+                
+                # Color single grid cell
+                elif event.type == MOUSEBUTTONDOWN:
+                    x_pos, y_pos = pygame.mouse.get_pos()
+
+                    x_pos = x_pos // (self.cell_width+self.cell_margin)
+                    y_pos = y_pos // (self.cell_height+self.cell_margin)
+
+                    if self.grid.getIndex(y_pos, x_pos):
+                        if self.grid.getIndex(y_pos, x_pos) == -1:
+                            pass
+                        else:
+                            self.grid.setIndex(y_pos, x_pos, 0)
+                        self.clear=True
+                    else:
+                        self.grid.setIndex(y_pos, x_pos, 1)
+
+                    self.drag = True
+
+            # fill background color
+            self.screen.fill(self.background)
+
+
+            if (self.solve.path[-1][0],self.solve.path[-1][1]) != self.solve.end and not self.solve.stop:
+                if len(self.solve.path) < 1000:
+                    self.solve.adjacent_list()
+                    self.solve.select_from_frontier()
+                    self.grid.matrix = self.solve.grid
+
+
+            # create grid
+            for i in range(self.screen_h // (self.cell_height+self.cell_margin)):
+                for j in range(self.screen_w // (self.cell_width+self.cell_margin)):
+                    y_pos = i * (self.cell_height+self.cell_margin) +self.cell_margin
+                    x_pos = j * (self.cell_width+self.cell_margin) + self.cell_margin
+
+
+            # Black if cell is 1 white otherwise
+                    if self.grid.getIndex(i, j) == -1:
+                        pygame.draw.rect(self.screen, BLACK, (x_pos,y_pos, self.cell_width, self.cell_height))
+                    elif self.grid.getIndex(i, j) == 0:
+                        pygame.draw.rect(self.screen, WHITE, (x_pos,y_pos, self.cell_width, self.cell_height))
+                    elif self.grid.getIndex(i, j) == -2:
+                        pygame.draw.rect(self.screen, GRAY, (x_pos,y_pos, self.cell_width, self.cell_height))
+                    else:
+                        pygame.draw.rect(self.screen, GREEN, (x_pos,y_pos, self.cell_width, self.cell_height))                    
+                        
+            # set fps
+            self.clock.tick(20)
+
+            # display changes
+            pygame.display.flip()
+
+        #quit game
+        pygame.quit()
+        return self.grid.matrix
+
    def run(self):
         while self.running:
             for event in pygame.event.get():
@@ -221,7 +326,7 @@ class Maze:
                     elif self.grid.getIndex(i, j) == -2:
                         pygame.draw.rect(self.screen, GRAY, (x_pos,y_pos, self.cell_width, self.cell_height))
                     else:
-                        pygame.draw.rect(self.screen, GREEN, (x_pos,y_pos, self.cell_width, self.cell_height))                    
+                        pygame.draw.rect(self.screen, BLACK, (x_pos,y_pos, self.cell_width, self.cell_height))                    
                         
             # set fps
             self.clock.tick(20)
@@ -289,9 +394,13 @@ class Solve:
 
     def select_from_frontier(self):
         self.frontier = self.frontier + self.adjacent
-        next = self.frontier[0]
-        idx = 0
+        try:
+            next = self.frontier[0]
+        except IndexError:
+            self.stop = True
+            return
 
+        idx = 0
         if len(self.frontier) == 0:
             self.stop == True
         for i in range(len(self.frontier)):
@@ -314,17 +423,5 @@ if __name__ == "__main__":
     
     matrix = maze.run()
 
-    solve = Solve(matrix, matrix.shape[0],matrix.shape[1], (0, 0), (matrix.shape[0]-1,matrix.shape[1]-1))
-
-    while (solve.path[-1][0],solve.path[-1][1]) != solve.end and not solve.stop:
-        solve.adjacent_list()
-        solve.select_from_frontier()
-        
-        if len(solve.path) > 1000:
-            break
-
-    print(len(solve.path))
-
     maze2 = Maze(255, 255)
-    maze2.grid.matrix = solve.grid
-    maze2.run()
+    maze2.iterative_run(matrix)
