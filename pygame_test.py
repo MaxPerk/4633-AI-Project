@@ -11,6 +11,12 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 
+def inList2(value, list):
+    for item in list:
+        if value == (item[0], item[1]):
+            return True
+    return False
+
 def carve_maze(grid:np.ndarray, size:int) -> np.ndarray:
     output_grid = np.empty([size*3, size*3],dtype=int)
     output_grid[:] = 0
@@ -140,10 +146,24 @@ class Maze:
     self.drag=False
     self.clear = False
 
-    self.solve = Solve(self.grid.matrix, self.grid.matrix.shape[0],self.grid.matrix.shape[1], (0, 0), (self.grid.matrix.shape[0]-1,self.grid.matrix.shape[1]-1))
-   
-   def iterative_run(self, grid):
-        self.solve.grid = grid
+    self.solve_end = Solve(self.grid.matrix, self.grid.matrix.shape[0],self.grid.matrix.shape[1], (0, 0), (self.grid.matrix.shape[0]-1,self.grid.matrix.shape[1]-1))
+    self.solve_start = Solve(self.grid.matrix, self.grid.matrix.shape[0],self.grid.matrix.shape[1],(self.grid.matrix.shape[0]-1,self.grid.matrix.shape[1]-1), (0,0))
+
+   def solve_grid(self, thing):
+        if (thing.path[-1][0],thing.path[-1][1]) != thing.end and not thing.stop:
+                    if len(thing.path) < 1000:
+                        thing.adjacent_list()
+                        thing.select_from_frontier()
+                        self.grid.matrix = thing.grid
+
+   def iterative_run(self, grid, which):
+        if which == "bidirectional":
+            self.solve_start.start = (self.solve_start.cols-1, self.solve_start.rows-1)
+            self.solve_end.start = (0,0)
+        
+        self.solve_end.set_path()
+        self.solve_start.set_path()
+        self.solve_end.grid = grid
         while self.running:
             for event in pygame.event.get():
 
@@ -210,13 +230,87 @@ class Maze:
             # fill background color
             self.screen.fill(self.background)
 
+            if which == "double":
+                self.solve_grid(self.solve_end)
+                self.solve_start.grid = self.grid.matrix
+                self.solve_grid(self.solve_start)
+            elif which == "single":
+                self.solve_grid(self.solve_end)
+            elif which == "bidirectional":
+                self.solve_end.end = self.solve_start.path[-1]
+                self.solve_end.start = self.solve_start.path[-1]
+                self.solve_grid(self.solve_end)
 
-            if (self.solve.path[-1][0],self.solve.path[-1][1]) != self.solve.end and not self.solve.stop:
-                if len(self.solve.path) < 1000:
-                    self.solve.adjacent_list()
-                    self.solve.select_from_frontier()
-                    self.grid.matrix = self.solve.grid
+                curr_solve_end = self.solve_end.path[-1]
 
+                try:
+                    if self.grid.getIndex(curr_solve_end[0]+1, curr_solve_end[1]) == 1:
+                        if not inList2((curr_solve_end[0]+1, curr_solve_end[1]), self.solve_end.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+
+                try:
+                    if self.grid.getIndex(curr_solve_end[0]-1, curr_solve_end[1]) == 1:
+                        if not inList2((curr_solve_end[0]-1, curr_solve_end[1]), self.solve_end.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+                
+                try:
+                    if self.grid.getIndex(curr_solve_end[0], curr_solve_end[1]+1) == 1:
+                        if not inList2((curr_solve_end[0], curr_solve_end[1]+1), self.solve_end.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+
+                try:
+                    if self.grid.getIndex(curr_solve_end[0], curr_solve_end[1]-1) == 1:
+                        if not inList2((curr_solve_end[0], curr_solve_end[1]-1), self.solve_end.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+
+                self.solve_start.grid = self.grid.matrix
+                self.solve_grid(self.solve_start)
+
+                curr_solve_start = self.solve_start.path[-1]
+
+                try:
+                    if self.grid.getIndex(curr_solve_start[0]+1, curr_solve_start[1]) == 1:
+                        if not inList2((curr_solve_start[0]+1, curr_solve_start[1]), self.solve_start.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+
+                try:
+                    if self.grid.getIndex(curr_solve_start[0]-1, curr_solve_start[1]) == 1:
+                        if not inList2((curr_solve_start[0]-1, curr_solve_start[1]), self.solve_start.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+                try:   
+                    if self.grid.getIndex(curr_solve_start[0], curr_solve_start[1]+1) == 1:
+                        if not inList2((curr_solve_start[0], curr_solve_start[1]+1), self.solve_start.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+
+                try:
+                    if self.grid.getIndex(curr_solve_start[0], curr_solve_start[1]-1) == 1:
+                        if not inList2((curr_solve_start[0], curr_solve_start[1]-1), self.solve_start.path):
+                            self.solve_end.stop = True
+                            self.solve_start.stop = True
+                except:
+                    pass
+                
 
             # create grid
             for i in range(self.screen_h // (self.cell_height+self.cell_margin)):
@@ -246,6 +340,7 @@ class Maze:
         return self.grid.matrix
 
    def run(self):
+        start = (0, 0)
         while self.running:
             for event in pygame.event.get():
 
@@ -306,6 +401,7 @@ class Maze:
                         self.clear=True
                     else:
                         self.grid.setIndex(y_pos, x_pos, 1)
+                        start = (y_pos, x_pos)
 
                     self.drag = True
 
@@ -327,7 +423,7 @@ class Maze:
                         pygame.draw.rect(self.screen, GRAY, (x_pos,y_pos, self.cell_width, self.cell_height))
                     else:
                         pygame.draw.rect(self.screen, BLACK, (x_pos,y_pos, self.cell_width, self.cell_height))                    
-                        
+
             # set fps
             self.clock.tick(20)
 
@@ -336,7 +432,7 @@ class Maze:
 
         #quit game
         pygame.quit()
-        return self.grid.matrix
+        return self.grid.matrix, start
 
 def inList(value, list):
     for item in list:
@@ -365,9 +461,13 @@ class Solve:
         self.start = start
         self.end = end
         self.frontier = []
-        self.path = [(start[0], start[1], 0)]
+        
         self.stop = False
    
+    def set_path(self):
+        self.path = [(self.start[0], self.start[1], 0)]
+        print(start[0], start[1])
+
     def adjacent_list(self):
         curr = self.path[-1]
         left = (curr[0]-1, curr[1], curr[2]+1)
@@ -421,7 +521,12 @@ class Solve:
 if __name__ == "__main__":
     maze = Maze(255,255)
     
-    matrix = maze.run()
+    matrix, start = maze.run()
+
 
     maze2 = Maze(255, 255)
-    maze2.iterative_run(matrix)
+    maze2.solve_end.start = start
+    maze2.solve_end.set_path()
+    maze2.solve_start.start = start
+    maze2.solve_start.set_path()
+    maze2.iterative_run(matrix, "bidirectional")
