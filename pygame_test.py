@@ -538,7 +538,18 @@ if __name__ == "__main__":
     matrix, start = maze.Init_Maze()
 
     matrix2 = deepcopy(matrix)
+    matrix3 = deepcopy(matrix)
 
+    maze4 = Game(game_init_values)
+    maze4.solve_for_end.set_path()
+    maze4.solve_for_start.set_path()
+    maze4.Solve_Maze(matrix3, "single")
+
+    maze3 = Game(game_init_values)
+    maze3.solve_for_end.set_path()
+    maze3.solve_for_start.set_path()
+    maze3.Solve_Maze(matrix2, "bidirectional")
+    
     maze2 = Game(game_init_values)
     maze2.solve_for_end.start = start
     maze2.solve_for_end.set_path()
@@ -546,7 +557,3 @@ if __name__ == "__main__":
     maze2.solve_for_start.set_path()
     maze2.Solve_Maze(matrix, "double")
 
-    maze3 = Game(game_init_values)
-    maze3.solve_for_end.set_path()
-    maze3.solve_for_start.set_path()
-    maze3.Solve_Maze(matrix2, "bidirectional")
